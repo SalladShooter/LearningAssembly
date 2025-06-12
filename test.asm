@@ -17,26 +17,25 @@ section .data
 section .text
     global _start
 
+%macro syscall4 4    ; cleaner macro for just syscall args
+    mov rax, %1
+    mov rdi, %2 
+    mov rsi, %3
+    mov rdx, %4
+    syscall
+%endmacro
+
 _start:
     ; Prompt the user
-    mov rax, 1
-    mov rdi, 1
-    mov rsi, msg
-    mov rdx, msg_len
-    syscall
+    syscall4 1, 1, msg, msg_len
 
     ; Read user input
-    mov rax, 0
-    mov rdi, 0
-    mov rsi, buffer
-    mov rdx, 100
-    syscall
-    ; RAX now contains the number of bytes read
+    syscall4 0, 0, buffer, 100
 
-    ; Compare first 4 bytes to "yes\n"
-    mov rsi, buffer        ; source: buffer
-    mov rdi, yesstr        ; compare to: "yes\n"
-    mov rcx, yeslen        ; number of bytes to compare
+    ; Prepare for comparison
+    mov rsi, buffer        ; input
+    mov rdi, yesstr        ; target string
+    mov rcx, yeslen        ; bytes to compare
 
 recheck:
     mov al, [rsi]
@@ -47,20 +46,11 @@ recheck:
     loop recheck
 
     ; If equal:
-    mov rax, 1
-    mov rdi, 1
-    mov rsi, yessay
-    mov rdx, yessay_len
-    syscall
+    syscall4 1, 1, yessay, yessay_len
     jmp exit
 
 not_yes:
-    ; Else:
-    mov rax, 1
-    mov rdi, 1
-    mov rsi, nosay
-    mov rdx, nosay_len
-    syscall
+    syscall4 1, 1, nosay, nosay_len
 
 exit:
     mov rax, 60
