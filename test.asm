@@ -1,36 +1,68 @@
 section .bss
-    buffer resb 100        ; reserve 100 bytes for input
-    buffer_len equ $ - buffer    ; defines 'len' var
+    buffer resb 100          ; reserve 100 bytes for input
 
 section .data
     msg db "Yes, or no?", 0xA
     msg_len equ $ - msg
 
+    yesstr db "yes", 10      ; 'yes' + newline
+    yeslen equ 4
+
+    yessay db "You said YES!", 10
+    yessay_len equ $ - yessay
+
+    nosay db "You did not say yes.", 10
+    nosay_len equ $ - nosay
+
 section .text
     global _start
 
 _start:
-    mov rax, 1             ; syscall: write
-    mov rdi, 1             ; file descriptor 1 = stdout
-    mov rsi, msg        ; msg to output
-    mov rdx, msg_len           ; write the same number of bytes
+    ; Prompt the user
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, msg
+    mov rdx, msg_len
     syscall
 
-    ; Read input from stdin (fd = 0)
-    mov rax, 0             ; syscall: read
-    mov rdi, 0             ; file descriptor 0 = stdin
-    mov rsi, buffer        ; buffer to store input
-    mov rdx, buffer_len           ; number of bytes to read
+    ; Read user input
+    mov rax, 0
+    mov rdi, 0
+    mov rsi, buffer
+    mov rdx, 100
+    syscall
+    ; RAX now contains the number of bytes read
+
+    ; Compare first 4 bytes to "yes\n"
+    mov rsi, buffer        ; source: buffer
+    mov rdi, yesstr        ; compare to: "yes\n"
+    mov rcx, yeslen        ; number of bytes to compare
+
+recheck:
+    mov al, [rsi]
+    cmp al, [rdi]
+    jne not_yes
+    inc rsi
+    inc rdi
+    loop recheck
+
+    ; If equal:
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, yessay
+    mov rdx, yessay_len
+    syscall
+    jmp exit
+
+not_yes:
+    ; Else:
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, nosay
+    mov rdx, nosay_len
     syscall
 
-    ; Optional: write the input back out to stdout
-    mov rax, 1             ; syscall: write
-    mov rdi, 1             ; file descriptor 1 = stdout
-    mov rsi, buffer        ; buffer to output
-    mov rdx, buffer_len           ; write the same number of bytes
-    syscall
-
-    ; Exit
-    mov rax, 60            ; syscall: exit
-    xor rdi, rdi           ; exit code 0
+exit:
+    mov rax, 60
+    xor rdi, rdi
     syscall
