@@ -1,11 +1,11 @@
 section .bss
-    buffer resb 100          ; reserve 100 bytes for input
+    buffer resb 100    ; reserve 100 bytes for input
 
 section .data
     msg db "Yes, or no?", 0xA
     msg_len equ $ - msg
 
-    yesstr db "yes", 10      ; 'yes' + newline
+    yesstr db "yes", 10    ; 'yes' + newline
     yeslen equ 4
 
     yessay db "You said YES!", 10
@@ -17,7 +17,7 @@ section .data
 section .text
     global _start
 
-%macro syscall4 4    ; cleaner macro for just syscall args
+%macro syscall4 4    ; macro for assigning registers for syscall faster
     mov rax, %1
     mov rdi, %2 
     mov rsi, %3
@@ -26,18 +26,16 @@ section .text
 %endmacro
 
 _start:
-    ; Prompt the user
-    syscall4 1, 1, msg, msg_len
+    syscall4 1, 1, msg, msg_len    ; prompt the user
 
-    ; Read user input
-    syscall4 0, 0, buffer, 100
+    syscall4 0, 0, buffer, 100    ; read user input
 
     ; Prepare for comparison
-    mov rsi, buffer        ; input
-    mov rdi, yesstr        ; target string
-    mov rcx, yeslen        ; bytes to compare
+    mov rsi, buffer    ; input
+    mov rdi, yesstr    ; target string
+    mov rcx, yeslen    ; bytes to compare
 
-recheck:
+recheck:    ; checks if user said yes, or didn't say yes
     mov al, [rsi]
     cmp al, [rdi]
     jne not_yes
@@ -45,8 +43,7 @@ recheck:
     inc rdi
     loop recheck
 
-    ; If equal:
-    syscall4 1, 1, yessay, yessay_len
+    syscall4 1, 1, yessay, yessay_len    ; if equal
     jmp exit
 
 not_yes:
